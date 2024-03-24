@@ -24,113 +24,124 @@ REM set /p AR=Is this correct? (y/n)
 REM If /i "%AR%"=="n" goto :ARCHI
 REM cls
 
-REM Create location to save results
+REM Create location to save results.
 mkdir %TKTNUM%-%COMPUTERNAME%-Results
 
-REM Results directory
+REM Results directory.
 set rstDir=%TKTNUM%-%COMPUTERNAME%-Results\%COMPUTERNAME%-
 
-REM Variable when calling Powershell commands
+REM Variable when calling Powershell commands.
 set PSHELL="C:\windows\system32\WindowsPowerShell\v1.0\powershell.exe"
 set PEXPORT="| export-csv -Notypeinformation -Path"
 
-echo Gathering Process List
+echo Gathering Process List.
 %PSHELL% -Command "ps | select Name, ID, Path | export-csv -Notypeinformation -Path %rstDir%processListing.csv"
 
-echo Gathering Network Ports
+echo Gathering Network Ports.
 CALL :RUNCMD ".\t_cports /scomma", "networkSockets.csv"
 
-echo Gathering Recently Executed Programs
+echo Gathering Recently Executed Programs.
 CALL :RUNCMD ".\t_winprefetchview.exe /scomma", "prefetch.csv"
 
-echo Getting Commandline Arguments
+echo Getting Commandline Arguments.
 CALL :RUNCMD "wmic path WIN32_PROCESS get Caption, ProcessID,Commandline /format:csv >","output.csv"
 
 REM MEMORY DUMP TOOL COULD GO HERE
 
-echo Getting File Share information
+echo Getting File Share information.
 CALL :RUNCMD "c:\windows\system32\net.exe sessions >", "netSessions.txt"
 
-echo Getting Netbios Information
+echo Getting Netbios Information.
 CALL :RUNCMD "c:\windows\system32\nbtstat.exe -S >", "nbtstatS.txt"
 CALL :RUNCMD "c:\windows\system32\nbtstat.exe -c >", "nbtStatC.txt"
 
-echo Gathering DNS Cache
+echo Gathering DNS Cache.
 %PSHELL% -Command "Get-DnsClientCache | export-csv -Notypeinformation -Path  %rstDir%dnscache.csv"
 
-echo Gathering Network information
+echo Gathering Network information.
 %PSHELL% -Command "get-WmiObject -class Win32_NetworkAdapterConfiguration | select DefaultIPGateway, IPAddress, DNSHostName, IPEnabled, DHCPServer, DNSServerSearchOrder | export-csv -Notypeinformation -Path  %rstDir%networkinfo.csv"
 
-echo Getting ARP Cache
+echo Getting ARP Cache.
 CALL :RUNCMD "c:\windows\system32\arp.exe -a >", "arpCache.txt"
 
-echo Getting Registered Services
+echo Getting Registered Services.
 CALL :RUNCMD ".\t_serviwin.exe /scomma services", "services.csv"
 
-echo Getting Logged on Sessions
+echo Getting Logged on Sessions.
 CALL :RUNCMD ".\t_logonsessions.exe /accepteula -p >", "loggedon.txt"
 
-echo Getting Autoruns
+echo Getting Autoruns.
 CALL :RUNCMD ".\t_autorunsc64.exe /accepteula -a * -c >" "autoruns.txt"
 
-echo Getting System Information
+echo Getting System Information.
 CALL :RUNCMD ".\t_psinfo /accepteula -s -d -h >", "loggedon.txt"
 
-echo Getting USB Device Information
+echo Getting USB Device Information.
 CALL :RUNCMD ".\t_usbdeview.exe /scomma", "usbdevices.txt"
 
-echo Getting executable filetype association
+echo Getting executable filetype association.
 CALL :RUNCMD "ftype exefile >", "ftype.txt"
 
-echo Getting Host File information
+echo Getting Host File information.
 CALL :RUNCMD "type C:\windows\System32\Drivers\etc\hosts  >", "hostFiles.txt"
 
-echo Getting Network Statistics
+echo Getting Network Statistics.
 CALL :RUNCMD "c:\windows\system32\netstat.exe -s >", "netstat_s.txt"
 
-echo Getting Audit policy
+echo Getting Audit policy.
 CALL :RUNCMD "c:\windows\system32\net.exe accounts >", "net_accounts.txt"
 
-echo Getting User Account Information
+REM echo Getting Local Users.
+CALL :RUNCMD "c:\windows\system32\net.exe users >", "net_users.txt"
+
+REM echo Getting Local Admins.
+
+REM echo Getting Domain Users.
+
+REM echo Getging Domain Admins.
+
+echo Getting User Account Information.
 REM CALL :RUNCMD %PSHELL%, "Get-Wmiobject -class Win32_Account", %PEXPORT%, net_accounts.csv
 
-echo Getting Browser History Listing
+echo Getting Browser History Listing.
 CALL :RUNCMD "t_BrowsingHistoryView.exe /scomma", "browse.csv"
 
-echo Getting Firewall Configuration
+echo Getting Firewall Configuration.
 CALL :RUNCMD "netsh firewall show config >", "firewallConfig.txt"
 
 echo ************** These may take a while to run **************
 
-REM echo Getting Process Handle Information
+REM echo Getting Process Handle Information.
 REM CALL :RUNCMD ".\t_handle.exe /accepteula -a -u >", "handles.txt"
 
-REM echo Getting DLLs for Processes
+REM echo Getting DLLs for Processes.
 REM CALL :RUNCMD ".\t_listdlls.exe /accepteula >", "listdlls.txt"
 
 REM FOR YOU TODO: echo Gather service details, ensure you get the full path of the executable it calls.
 
-REM FOR YOU TODO: echo Gather open files. OpenFilesView
+REM FOR YOU TODO: echo Gather open files. OpenFilesView.
 
-echo Collecting file metadata under user home directory
+echo Collecting file metadata under user home directory.
 CALL :RUNCMD ".\t_goBodyFile.exe -body -directory C:\Users\%USERNAME% -output", "%USERNAME%-body.txt"
 
 REM :GETBROWSER
 REM FOR YOU TODO: Update xcopy to use robocopy
 
-REM ECHO Copying IE artifacts
+REM ECHO Copying IE artifacts.
 REM c:\windows\system32\xcopy.exe "C:\Users\%USRNAME%\AppData\Local\Microsoft\Windows\Temporary Internet Files\*.*" "%TKTNUM%-%COMPUTERNAME%-Results\browsers\internet_explorer" /EHYCI
 
-REM ECHO Copying Firefox artifacts
+REM ECHO Copying Firefox artifacts.
 REM c:\windows\system32\xcopy.exe "C:\Users\%USRNAME%\AppData\Local\Mozilla\Firefox\Profiles\*.*" "%TKTNUM%-%COMPUTERNAME%-Results\browsers\firefox" /EHYCI
 
-REM ECHO Copying Chrome artifacts
+REM ECHO Copying Chrome artifacts.
 REM c:\windows\system32\xcopy.exe "C:\Users\%USRNAME%\AppData\Local\Google\Chrome\*.*" "%COMPUTERNAME%-Results\browsers\chrome" /EHYCI
 REM EXIT /B 0
 
+REM Compress the directory with results.
 .\7z\7za a r %TKTNUM%-%COMPUTERNAME%-Results\
 
-.\t_sendIR.exe -f %TKTNUM%-%COMPUTERNAME%-Results.7z
+REM Send the compressed results file to the intake server.
+REM .\t_sendIR.exe -f %TKTNUM%-%COMPUTERNAME%-Results.7z
 
 REM Collect your Anti-virus logs when you return to your organization.
 
